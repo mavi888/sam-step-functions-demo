@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  MyApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: dev
+
+  SAMLogs:
+    Type: AWS::Logs::LogGroup
+
+  ValidationStateMachine:
+    Type: AWS::Serverless::StateMachine
+    Properties:
+      Type: EXPRESS
+      DefinitionUri: statemachine/validator.asl.json
+      DefinitionSubstitutions:
+        ValidateOwnerFunctionArn: !GetAtt ValidateOwnerFunction.Arn
+        ValidatePropertyFunctionArn: !GetAtt ValidatePropertyFunction.Arn
+        ValidationSuccesfullFunctionArn: !GetAtt ValidationSuccesfullFunction.Arn
+        ValidationNotSuccesfullFunctionArn: !GetAtt ValidationNotSuccesfullFunction.Arn
+      Events:
+        ValidationApiEvent:
+          Type: Api
+          Properties:
+            Method: post
+            Path: /validate
+            RestApiId:
+              Ref: MyApi
+      Logging:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt SAMLogs.Arn
+        IncludeExecutionData: true
+        Level: ALL
+      Policies:
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ValidateOwnerFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ValidatePropertyFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ValidationSuccesfullFunction
+        - LambdaInvokePolicy:
+            FunctionName: !Ref ValidationNotSuccesfullFunction
+        - CloudWatchLogsFullAccess
+
+  ValidateOwnerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: validate-owner.lambdaHandler
+      Runtime: nodejs12.x
+
+  ValidatePropertyFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: validate-property.lambdaHandler
+      Runtime: nodejs12.x
+
+  ValidationSuccesfullFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: validation-succesfull.lambdaHandler
+      Runtime: nodejs12.x
+      Policies:
+        - Statement:
+            - Sid: EventBridgePutEvents
+              Effect: "Allow"
+              Action:
+                - "events:PutEvents"
+              Resource: "*"
+
+  ValidationNotSuccesfullFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: functions/
+      Handler: validation-not-succesfull.lambdaHandler
+      Runtime: nodejs12.x
+
+Outputs:
+  ValidationStateMachineArn:
+    Description: "validation state machine ARN"
+    Value: !Ref ValidationStateMachine
+  ValidationAPIUrl:
+    Description: "url to call the validation state machine"
+    Value: !Sub https://${MyApi}.execute-api.${AWS::Region}.amazonaws.com/dev/

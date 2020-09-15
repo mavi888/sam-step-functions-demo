@@ -1,0 +1,62 @@
+{
+  "Comment": "A state machine that validates an owner and property.",
+  "StartAt": "Parallel",
+  "States": {
+    "Parallel": {
+      "Type": "Parallel",
+      "Next": "Validated?",
+      "ResultPath": "$.validation",
+      "Branches": [
+        {
+          "StartAt": "Validate Owner",
+          "States": {
+            "Validate Owner": {
+              "Type": "Task",
+              "Resource": "${ValidateOwnerFunctionArn}",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "Validate Property",
+          "States": {
+            "Validate Property": {
+              "Type": "Task",
+              "Resource": "${ValidatePropertyFunctionArn}",
+              "End": true
+            }
+          }
+        }
+      ]
+    },
+    "Validated?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "And": [
+            {
+              "Variable": "$.validation[0]",
+              "BooleanEquals": true
+            },
+            {
+              "Variable": "$.validation[1]",
+              "BooleanEquals": true
+            }
+          ],
+          "Next": "Validation Succesfull"
+        }
+      ],
+      "Default": "Validation Not Succesfull"
+    },
+    "Validation Succesfull": {
+      "Type": "Task",
+      "Resource": "${ValidationSuccesfullFunctionArn}",
+      "End": true
+    },
+    "Validation Not Succesfull": {
+      "Type": "Task",
+      "Resource": "${ValidationNotSuccesfullFunctionArn}",
+      "End": true
+    }
+  }
+}
