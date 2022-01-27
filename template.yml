@@ -50,21 +50,21 @@ Resources:
     Properties:
       CodeUri: functions/
       Handler: validate-owner.lambdaHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
 
   ValidatePropertyFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions/
       Handler: validate-property.lambdaHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
 
   ValidationSuccesfullFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: functions/
       Handler: validation-succesfull.lambdaHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
       Policies:
         - Statement:
             - Sid: EventBridgePutEvents
@@ -78,7 +78,7 @@ Resources:
     Properties:
       CodeUri: functions/
       Handler: validation-not-succesfull.lambdaHandler
-      Runtime: nodejs12.x
+      Runtime: nodejs14.x
 
 Outputs:
   ValidationStateMachineArn:
